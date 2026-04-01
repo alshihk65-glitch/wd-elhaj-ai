@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wad Elhaj AI - تحريك الصور الاحترافي</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0f172a; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .gradient-text { background: linear-gradient(90deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    </style>
+<script type="module">
+    import { client } from "https://cdn.jsdelivr.net/npm/@gradio/client@0.1.4/dist/index.min.js";
+    window.GradioClient = client;
+</script>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4">
+
+    <header class="w-full max-w-4xl flex justify-between items-center py-6 mb-10">
+        <h1 class="text-2xl font-bold gradient-text">Wad Elhaj AI</h1>
+        <div class="text-sm bg-blue-600 px-3 py-1 rounded-full">نسخة المطورين v1.0</div>
+    </header>
+
+    <main class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8">
+        
+        <div class="glass p-6 rounded-2xl">
+            <h2 class="text-xl mb-4 font-semibold text-gray-200">إعدادات المشهد</h2>
+            
+            <div class="border-2 border-dashed border-gray-600 rounded-xl p-8 text-center mb-6 hover:border-blue-500 cursor-pointer transition">
+                <p class="text-gray-400">اسحب الصورة هنا أو اضغط للرفع</p>
+                <input type="file" class="hidden" id="imageInput">
+            </div>
+
+            <label class="block text-sm mb-2 text-gray-400">وصف الحركة (Prompt)</label>
+            <textarea class="w-full bg-slate-800 rounded-lg p-3 text-white mb-4 outline-none focus:ring-2 ring-blue-500" rows="3" placeholder="مثلاً: رجل يبتسم ببطء وينظر للكاميرا..."></textarea>
+
+            <button onclick="startGeneration()" class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-bold transition shadow-lg shadow-blue-900/20">
+                بدء تحريك الصورة مجاناً
+            </button>
+        </div>
+
+        <div class="glass p-6 rounded-2xl flex flex-col items-center justify-center min-h-[300px]">
+            <div id="status" class="text-gray-500 text-center">
+                <p>الفيديو سيظهر هنا بعد المعالجة</p>
+                <div class="mt-4 animate-pulse">📽️</div>
+            </div>
+            <video id="outputVideo" class="hidden w-full rounded-lg shadow-2xl" controls></video>
+        </div>
+
+    </main>
+
+    <footer class="mt-auto py-8 text-gray-500 text-sm">
+        صنع بواسطة المطور العالمي Wad Elhaj &copy; 2026
+    </footer>
+
+    <script>
+   async function startGeneration() {
+    const imageInput = document.getElementById('imageInput');
+    const status = document.getElementById('status');
+    const videoElement = document.getElementById('outputVideo');
+    const btn = document.querySelector('button');
+
+    if (imageInput.files.length === 0) {
+        alert("يا صديقي، يجب أن تختار صورة أولاً!");
+        return;
+    }
+
+    const file = imageInput.files[0];
+
+    try {
+        // 1. تحديث الواجهة لإظهار حالة التحميل
+        btn.disabled = true;
+        btn.innerText = "جاري الاتصال بالسيرفرات العالمية...";
+        status.innerHTML = `<p class='animate-bounce text-blue-400'>🚀 جاري تحويل صورتك إلى فيديو حي... قد يستغرق الأمر دقيقة</p>`;
+
+        // 2. الاتصال بمحرك Hugging Face المجاني (نموذج Stable Video Diffusion)
+        // ملاحظة: نستخدم مساحة عمل مفتوحة (Public Space) توفر API مجاني
+        const app = await GradioClient("aliabd/stable-video-diffusion");
+        
+        const result = await app.predict("/video", [
+            file, 	// الصورة المرفوعة
+            Math.floor(Math.random() * 1000000), // Seed عشوائي
+            true,   // تحسين الجودة
+        ]);
+
+        // 3. عرض النتيجة النهائية
+        if (result.data) {
+            const videoUrl = result.data[0].video.url;
+            status.classList.add('hidden');
+            videoElement.src = videoUrl;
+            videoElement.classList.remove('hidden');
+            videoElement.play();
+            btn.innerText = "تم الإنشاء بنجاح! جرب مرة أخرى";
+            btn.disabled = false;
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert("حدث ضغط على السيرفر المجاني، حاول مرة أخرى بعد قليل.");
+        btn.disabled = false;
+        btn.innerText = "حاول مرة أخرى";
+    }
+}
+
+// جعل الدالة متاحة عالمياً
+window.startGeneration = startGeneration;
+ </script>
+</body>
+</html>
