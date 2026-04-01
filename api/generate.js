@@ -1,45 +1,45 @@
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    const { image, prompt } = req.body;
-    const token = process.env.REPLICATE_API_TOKEN;
+    const { image } = req.body;
+    const HF_TOKEN = process.env.HF_TOKEN; 
 
-    if (!token) {
-        return res.status(500).json({ error: 'مفتاح API مفقود في إعدادات Vercel' });
+    if (!image) {
+        return res.status(400).json({ error: 'Please upload an image' });
     }
 
     try {
-        const startResponse = await fetch("https://api.replicate.com/v1/predictions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Token ${token}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                version: "392d692a29a5c02c6f1405e3f44485994f87747716f9f041e17d91986427a1df",
-                input: { image, prompt }
-            }),
+        const imageData = image.split(',')[1];
+        const blob = await fetch(`data:image/png;base64,${imageData}`).then(r => r.blob());
+
+        const response = await fetch(
+            "https://api-inference.huggingface.co/models/stabilityai/stable-video-diffusion-img2vid-xt",
+            {
+                headers: { 
+                    "Authorization": `Bearer ${HF_TOKEN}`,
+                    "Content-Type": "application/octet-stream"
+                },
+                method: "POST",
+                body: blob,
+            }
+        );
+
+        if (!response.ok) {
+            return res.status(500).json({ error: 'المحرك مشغول، جرب مرة أخرى بعد دقيقة' });
+        }
+
+        const videoBlob = await response.blob();
+        const arrayBuffer = await videoBlob.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const base64Video = buffer.toString('base64');
+
+        res.status(200).json({ 
+            videoUrl: `data:video/mp4;base64,${base64Video}` 
         });
 
-        let prediction = await startResponse.json();
-
-        while (prediction.status !== "succeeded" && prediction.status !== "failed") {
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            const checkResponse = await fetch(prediction.urls.get, {
-                headers: { "Authorization": `Token ${token}` },
-            });
-            prediction = await checkResponse.json();
-        }
-
-        if (prediction.status === "succeeded") {
-            res.status(200).json({ videoUrl: prediction.output });
-        } else {
-            throw new Error("فشل المحرك في معالجة الصورة");
-        }
-
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'خطأ في الاتصال بالمحرك' });
     }
 }
