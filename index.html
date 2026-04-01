@@ -3,90 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wad Elhaj AI</title>
+    <title>Wad Elhaj AI - منصة تحريك الصور</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #0f172a; color: white; font-family: sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        #imagePreview { max-width: 100%; max-height: 300px; display: none; border-radius: 8px; }
+        .card { background-color: #1e293b; border-radius: 1rem; padding: 1.5rem; }
     </style>
 </head>
-<body class="p-4 md:p-10">
-    <div class="max-w-4xl mx-auto">
-        <header class="text-center mb-10">
-            <h1 class="text-4xl font-bold text-blue-500 mb-2">Wad Elhaj AI</h1>
-            <p class="text-gray-400">منصة تحريك الصور بالذكاء الاصطناعي</p>
-        </header>
+<body class="p-4">
+    <div class="max-w-md mx-auto space-y-6">
+        <h1 class="text-3xl font-bold text-center text-blue-500">Wad Elhaj AI</h1>
+        <p class="text-center text-gray-400">تحويل الصور إلى فيديو بالذكاء الاصطناعي</p>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div class="glass p-6 rounded-2xl">
-                <h2 class="text-xl mb-4 font-semibold">1. إعداد المشهد</h2>
-                <div class="border-2 border-dashed border-gray-600 rounded-xl p-8 text-center cursor-pointer hover:border-blue-500 transition" onclick="document.getElementById('fileInput').click()">
-                    <input type="file" id="fileInput" hidden accept="image/*">
-                    <div id="uploadPlaceholder">
-                        <p class="text-gray-400">اضغط هنا لرفع صورة الشخصية</p>
-                    </div>
-                    <img id="imagePreview" src="" alt="Preview">
-                </div>
-                
-                <div class="mt-6">
-                    <label class="block text-sm text-gray-400 mb-2">وصف الحركة (Prompt):</label>
-                    <textarea id="promptText" class="w-full bg-slate-800 rounded-lg p-3 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3" placeholder="مثلاً: رجل يتحدث بوقار وخلفه مكتبة..."></textarea>
-                </div>
-            </div>
+        <div class="card space-y-4">
+            <label class="block text-sm font-medium">1. ارفع صورتك الشخصية</label>
+            <input type="file" id="imageInput" accept="image/*" class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700">
+            
+            <label class="block text-sm font-medium">2. وصف الحركة (بالإنجليزي)</label>
+            <textarea id="promptInput" rows="3" class="w-full p-2 rounded bg-slate-900 border border-slate-700 text-white" placeholder="مثال: A man smiling and blinking eyes..."></textarea>
+            
+            <button onclick="generateVideo()" id="btnText" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">
+                بدء تحريك الصورة الآن
+            </button>
+        </div>
 
-            <div class="glass p-6 rounded-2xl flex flex-col justify-between">
-                <h2 class="text-xl mb-4 font-semibold">2. النتيجة</h2>
-                <div id="resultArea" class="bg-slate-900 aspect-video rounded-xl flex items-center justify-center border border-gray-800">
-                    <p class="text-gray-500 italic">الفيديو سيظهر هنا بعد المعالجة</p>
-                </div>
-                <button onclick="generateVideo()" id="genBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl mt-6 transition shadow-lg shadow-blue-900/20">
-                    بدء تحريك الصورة مجاناً
-                </button>
-            </div>
+        <div id="resultArea" class="card min-h-[200px] flex items-center justify-center border-2 border-dashed border-slate-700">
+            <p class="text-gray-500 text-center" id="statusMessage">ستظهر النتيجة هنا...</p>
         </div>
     </div>
 
     <script>
-        // كود تفاعل رفع الصور
-        const fileInput = document.getElementById('fileInput');
-        const imagePreview = document.getElementById('imagePreview');
-        const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+        async function generateVideo() {
+            const prompt = document.getElementById('promptInput').value;
+            const imageInput = document.getElementById('imageInput');
+            const statusMessage = document.getElementById('statusMessage');
+            const btn = document.getElementById('btnText');
 
-        fileInput.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    imagePreview.src = e.target.result;
-                    imagePreview.style.display = 'block';
-                    uploadPlaceholder.style.display = 'none';
-                }
-                reader.readAsDataURL(file);
-            }
-        });
-
-        // كود تفاعل زر التوليد
-        function generateVideo() {
-            const btn = document.getElementById('genBtn');
-            const resultArea = document.getElementById('resultArea');
-            const prompt = document.getElementById('promptText').value;
-
-            if (!fileInput.files[0]) {
-                alert("من فضلك ارفع صورة أولاً!");
+            if (!imageInput.files[0] || !prompt) {
+                alert("يرجى رفع صورة وكتابة وصف للحركة");
                 return;
             }
 
+            // تجهيز الواجهة للانتظار
             btn.disabled = true;
-            btn.innerText = "جاري الاتصال بالسيرفر...";
-            resultArea.innerHTML = '<div class="text-center"><div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500 mb-2"></div><p class="text-blue-400">جاري معالجة ملامح الوجه...</p></div>';
+            btn.innerText = "جاري المعالجة... (قد يستغرق دقيقة)";
+            statusMessage.innerText = "جاري إرسال الصورة للمحرك... انتظر قليلاً";
 
-            // محاكاة لعملية الذكاء الاصطناعي (سنربطها حقيقياً لاحقاً)
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.innerText = "بدء تحريك الصورة مجاناً";
-                resultArea.innerHTML = '<p class="text-green-400 text-center px-4">تمت المحاكاة بنجاح! <br> للتحريك الفعلي نحتاج لربط مفتاح الـ API في الخطوة القادمة.</p>';
-            }, 3000);
+            const reader = new FileReader();
+            reader.readAsDataURL(imageInput.files[0]);
+            reader.onload = async () => {
+                const base64Image = reader.result;
+
+                try {
+                    // إرسال الطلب لـ Vercel API
+                    const response = await fetch('/api/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: base64Image, prompt: prompt })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.videoUrl) {
+                        document.getElementById('resultArea').innerHTML = `
+                            <video controls autoplay loop class="w-full rounded-lg">
+                                <source src="${data.videoUrl}" type="video/mp4">
+                            </video>`;
+                        btn.innerText = "بدء تحريك الصورة الآن";
+                        btn.disabled = false;
+                    } else {
+                        throw new Error(data.error || "خطأ غير معروف");
+                    }
+                } catch (error) {
+                    alert("حدث خطأ: " + error.message);
+                    btn.disabled = false;
+                    btn.innerText = "حاول مرة أخرى";
+                    statusMessage.innerText = "فشل التوليد، تأكد من مفتاح API";
+                }
+            };
         }
     </script>
 </body>
